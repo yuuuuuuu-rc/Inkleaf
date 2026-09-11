@@ -1,0 +1,22 @@
+# 用户配置、密钥与本地数据
+settings.json
+config.json
+.env
+.env.*
+!.env.example
+data/
+书籍/
+笔记/
+墨页书库.json
+
+# 工具与系统文件
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.sites-runtime/
+
+# 临时文件
+*.tmp
+*.log
+

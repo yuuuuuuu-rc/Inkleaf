@@ -1,0 +1,13 @@
+{
+  "name": "inkstone-reader-web",
+  "version": "0.4.0",
+  "private": true,
+  "description": "面向 EPUB 与可重排文档的本地 AI 协作阅读器",
+  "scripts": {
+    "start": "node server.cjs --open",
+    "check": "node --check server.cjs && node --check dist/web-bridge.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
