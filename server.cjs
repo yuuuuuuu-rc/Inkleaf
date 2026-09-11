@@ -6,12 +6,15 @@ const crypto = require('node:crypto')
 const { execFile, spawn } = require('node:child_process')
 
 const HOST = '127.0.0.1'
-const PORT = 43128
+const PORT = Number(process.env.INKLEAF_PORT || 43128)
 const APP_ROOT = __dirname
 const STATIC_ROOT = path.join(APP_ROOT, 'dist')
-const CONFIG_ROOT = process.env.INKSTONE_CONFIG_DIR || path.join(process.env.LOCALAPPDATA || APP_ROOT, '墨页阅读网页')
+const CONFIG_ROOT = process.env.INKLEAF_CONFIG_DIR || process.env.INKSTONE_CONFIG_DIR || path.join(process.env.LOCALAPPDATA || APP_ROOT, 'Inkleaf')
 const SETTINGS_PATH = path.join(CONFIG_ROOT, 'settings.json')
-const LEGACY_SETTINGS_PATH = path.join(process.env.APPDATA || '', 'inkstone-reader', 'settings.json')
+const LEGACY_SETTINGS_PATHS = [
+  path.join(process.env.LOCALAPPDATA || '', '墨页阅读网页', 'settings.json'),
+  path.join(process.env.APPDATA || '', 'inkstone-reader', 'settings.json'),
+]
 const POWERSHELL = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
 const stateWriteQueues = new Map()
 
@@ -27,7 +30,7 @@ function inside(root, target) {
 }
 
 async function readSettingsRaw() {
-  for (const filename of [SETTINGS_PATH, LEGACY_SETTINGS_PATH]) {
+  for (const filename of [SETTINGS_PATH, ...LEGACY_SETTINGS_PATHS]) {
     try { return JSON.parse(await fsp.readFile(filename, 'utf8')) } catch {}
   }
   return {}

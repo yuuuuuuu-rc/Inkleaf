@@ -8,6 +8,11 @@ data/
 书籍/
 笔记/
 墨页书库.json
+*.epub
+*.mobi
+*.azw
+*.azw3
+*.pdf
 
 # 工具与系统文件
 node_modules/
@@ -19,4 +24,3 @@ Thumbs.db
 # 临时文件
 *.tmp
 *.log
-
