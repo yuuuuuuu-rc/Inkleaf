@@ -8,4 +8,4 @@ Thank you for helping improve Inkleaf.
 4. Run `npm test` before opening a pull request.
 5. Describe the user-visible behavior, data-format changes and manual checks in the pull request.
 
-Changes to `notebook.json` or `墨页书库.json` must remain backward compatible or include a documented migration. AI-generated changes to notes must stay reviewable and reversible.
+Changes to `notebook.json` or `library.json` must remain backward compatible or include a documented migration. AI-generated changes to notes must stay reviewable and reversible.

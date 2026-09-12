@@ -1,25 +1,24 @@
-# Socratic Reader 参考分析
+# Socratic Reader Reference Analysis
 
-参考项目：[FourteenObsidians/socratic-reader](https://github.com/FourteenObsidians/socratic-reader)，研究版本 `4fb85a96f551400c4af0ef8dab3f800105e9b547`。
+Reference project: [FourteenObsidians/socratic-reader](https://github.com/FourteenObsidians/socratic-reader), reviewed at commit `4fb85a96f551400c4af0ef8dab3f800105e9b547`.
 
-## 值得吸收的设计
+## Ideas worth adapting
 
-- 问题锚定原文，而非泛泛询问“你怎么看”。
-- 提示逐级增加，只有用户明确要求才直接讲解。
-- 将读者暴露的薄弱点加入跨会话复习池。
-- 把 AI 拆出的知识节点、批注和复盘记录保存在本地。
-- 读书、带读、巩固和自由探索是不同状态，不混成一条无边界聊天流。
-- 配置和模型请求留在本机服务端，浏览器界面不直接持有密钥。
+- Anchor questions to specific source material instead of asking vague questions.
+- Increase hints gradually and explain directly only when requested.
+- Carry observed learning gaps into a cross-session review queue.
+- Keep generated knowledge maps, annotations, and review records local.
+- Treat reading, guided study, review, and open exploration as distinct states.
+- Keep configuration and model requests in the local server so the browser does not hold credentials directly.
 
-## 墨页阅读的差异
+## How Inkleaf differs
 
-参考项目主要围绕 PDF 页码和固定版面；墨页阅读首先服务 EPUB 与其他可重排文档：
+The reference project centers on PDFs and fixed page numbers. Inkleaf is designed first for EPUB and other reflowable documents:
 
-- 定位从页码升级为 CFI、章节和文本指纹；
-- 支持小说的阅读进度边界与防剧透检索；
-- 笔记更像可摆放、可关联的便签，而不仅是线性 Markdown；
-- 每本书拥有独立、可搬运的笔记库；
-- 翻译、原文、读者笔记和 AI 讨论保持互相可追溯。
+- locations use CFI, chapter hrefs, and text fingerprints;
+- fiction receives reading-progress boundaries and spoiler-safe retrieval;
+- notes behave like movable, linkable sticky notes rather than a linear text file;
+- every book has an independent, portable notebook;
+- translations, source passages, reader notes, and AI conversations remain traceable to one another.
 
-本项目只吸收产品思想与公开行为描述，不复制参考项目源码。
-
+Inkleaf adapts product concepts and public behavior descriptions; it does not copy the reference project's source code.

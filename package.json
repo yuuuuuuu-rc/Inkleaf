@@ -1,8 +1,8 @@
 {
   "name": "inkleaf",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
-  "description": "面向 EPUB 与可重排文档的本地 AI 协作阅读器",
+  "description": "A local-first EPUB reader for AI-assisted reading, translation, and interactive notes",
   "scripts": {
     "start": "node server.cjs --open",
     "start:server": "node server.cjs",

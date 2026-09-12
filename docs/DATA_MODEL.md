@@ -1,13 +1,25 @@
-# 本地笔记与证据模型
+# Local Notes and Evidence Model
 
-## 原则
+## Principles
 
-- 书库可整体复制，不依赖云端数据库。
-- 每本书的笔记独立保存，损坏不会影响其他书。
-- 普通 JSON 保证可迁移；后续可附加 SQLite 索引，但索引必须可重建。
-- AI 只能通过明确操作写笔记，并保留撤销记录。
+- A library remains portable and does not depend on a cloud database.
+- Each book has an independent notebook so one damaged file cannot affect every book.
+- Human-readable JSON remains the source of truth. A future SQLite index must be disposable and rebuildable.
+- AI writes require an explicit, reviewable operation with undo history.
 
-## 建议结构
+## Canonical library layout
+
+```text
+library/
+├─ library.json
+├─ books/
+│  └─ *.epub
+└─ notes/
+   └─ <book-id>/
+      └─ notebook.json
+```
+
+## Proposed notebook schema
 
 ```json
 {
@@ -24,25 +36,33 @@
 }
 ```
 
-一条笔记至少包含：
+Each note should contain:
 
-- `id`、创建和修改时间；
-- `kind`：便签、问题、观点、反例、摘录、复习卡；
-- `body`：读者可编辑的富文本块；
-- `anchor`：CFI、章节 href、引文文本指纹；
-- `author`：`reader`、`ai-draft` 或 `coauthored`；
-- `evidence`：书内引文或外部链接；
-- `history`：可撤销的修改记录。
+- `id`, creation time, and modification time;
+- `kind`: sticky note, question, claim, counterexample, excerpt, or review card;
+- `body`: reader-editable rich-text blocks;
+- `anchor`: CFI, chapter href, and text fingerprint;
+- `author`: `reader`, `ai-draft`, or `coauthored`;
+- `evidence`: book passages or external sources;
+- `history`: reversible revisions.
 
-## AI 写入规则
+## AI write protocol
 
-AI 默认只读。允许的写入流程为：
+AI is read-only by default:
 
-1. AI 返回结构化的笔记建议；
-2. 界面显示将要写入的标题、正文、位置与来源；
-3. 用户确认、修改或拒绝；
-4. 服务端原子写入并保存上一个版本；
-5. 界面提供撤销。
+1. The AI returns a structured note proposal.
+2. The interface previews the title, body, location, and sources.
+3. The reader approves, edits, or rejects the proposal.
+4. The server writes atomically and preserves the previous revision.
+5. The interface offers undo.
 
-API 密钥与搜索密钥不能写入书库，也不能出现在导出笔记或 Git 历史中。
+Model and search credentials must never enter the library, exported notes, or Git history.
 
+## Legacy migration
+
+Inkleaf recognizes the directory names used by early local preview builds. On first access it:
+
+1. renames the legacy book and note directories to `books/` and `notes/`;
+2. writes a normalized `library.json` with portable forward-slash paths;
+3. stores the original manifest as `library.legacy-backup.json`;
+4. removes the obsolete manifest only after the new index is written successfully.

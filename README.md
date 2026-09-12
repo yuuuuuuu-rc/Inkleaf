@@ -2,7 +2,7 @@
 
 **A local-first EPUB reader for AI-assisted reading, translation and interactive notes.**
 
-[简体中文](README.zh-CN.md) · [Product design](docs/PRODUCT.md) · [Web-search design](docs/WEB_SEARCH.md)
+[Product design](docs/PRODUCT.md) · [Data model](docs/DATA_MODEL.md) · [Web-search design](docs/WEB_SEARCH.md)
 
 Inkleaf keeps books, highlights, sticky notes, translations, reading positions and AI conversations in a library folder you choose. It runs as a local web app and listens only on `127.0.0.1`.
 
@@ -52,10 +52,10 @@ Use **Choose library folder** on the first screen. Inkleaf creates this structur
 
 ```text
 Your library/
-├─ 墨页书库.json
-├─ 书籍/
+├─ library.json
+├─ books/
 │  └─ *.epub
-└─ 笔记/
+└─ notes/
    └─ <book-id>/
       └─ notebook.json
 ```
@@ -116,9 +116,9 @@ $env:INKLEAF_PORT=43129
 npm start
 ```
 
-### My old 墨页阅读 settings are missing
+### My settings from an earlier preview are missing
 
-Inkleaf automatically reads the previous `%LOCALAPPDATA%\墨页阅读网页\settings.json` location when the new configuration has not been created yet. Saving Settings migrates the configuration to the Inkleaf folder.
+Inkleaf automatically detects settings from earlier local preview versions when the new configuration has not been created yet. Saving Settings migrates the configuration to `%LOCALAPPDATA%\Inkleaf\settings.json`.
 
 ## Development
 

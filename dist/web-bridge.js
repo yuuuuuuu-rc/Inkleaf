@@ -10,8 +10,8 @@
         ...(options.headers || {}),
       },
     })
-    const payload = await response.json().catch(() => ({ error: '本机服务返回了无法识别的内容' }))
-    if (!response.ok || !payload.ok) throw new Error(payload.error || `操作失败（${response.status}）`)
+    const payload = await response.json().catch(() => ({ error: 'The local server returned an unreadable response.' }))
+    if (!response.ok || !payload.ok) throw new Error(payload.error || `Operation failed (${response.status}).`)
     return payload.value
   }
 

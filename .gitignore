@@ -1,26 +1,26 @@
-# 用户配置、密钥与本地数据
+# User configuration, credentials, and local data
 settings.json
 config.json
 .env
 .env.*
 !.env.example
 data/
-书籍/
-笔记/
-墨页书库.json
+books/
+notes/
+library.json
 *.epub
 *.mobi
 *.azw
 *.azw3
 *.pdf
 
-# 工具与系统文件
+# Tool and operating-system files
 node_modules/
 npm-debug.log*
 .DS_Store
 Thumbs.db
 .sites-runtime/
 
-# 临时文件
+# Temporary files
 *.tmp
 *.log

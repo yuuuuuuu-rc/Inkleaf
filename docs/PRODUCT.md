@@ -1,70 +1,69 @@
-# AI 协作阅读核心设计
+# AI Collaborative Reading: Product Design
 
-## 产品目标
+## Product goal
 
-墨页阅读不是“在电子书旁边放一个聊天机器人”，而是让 AI 成为受原文、阅读进度和用户笔记约束的共读伙伴。它应帮助读者形成自己的判断，而不是用总结替代阅读。
+Inkleaf is not a chatbot placed beside an ebook. It is a reading companion constrained by the source text, the reader's progress, and the reader's own notes. Its purpose is to help readers form judgments rather than replace reading with summaries.
 
-## 五个核心问题
+## Five core problems
 
-### 1. AI 如何始终锚定原文
+### 1. Keep AI grounded in the text
 
-每轮回答都应携带可返回原文的位置。PDF 常用页码，但 EPUB 会因字体、窗口与设备变化而重新排版，因此墨页阅读采用：
+Every answer should include a location that can return the reader to its source. Page numbers work for PDFs, but EPUB layout changes with fonts, windows, and devices. Inkleaf therefore uses:
 
-- EPUB CFI 作为精确定位；
-- 章节 href 作为结构定位；
-- 引文首尾文本指纹作为损坏后的恢复定位；
-- 书籍内容哈希作为版本身份。
+- EPUB CFI for precise locations;
+- chapter hrefs for structural locations;
+- leading and trailing text fingerprints for recovery;
+- a content hash for book-version identity.
 
-界面必须区分“原文明确写了什么”“读者怎样理解”“AI 的推断是什么”。
+The interface must distinguish source claims, reader interpretation, and AI inference.
 
-### 2. AI 如何促进思考而不是抢答
+### 2. Promote thinking instead of answering too quickly
 
-默认采用一轮一个问题的引导节奏：
+The default coaching rhythm asks one answerable question at a time:
 
-1. 指向一段具体原文；
-2. 要求读者作出可判断的解释、预测或比较；
-3. 根据回答暴露的缺口给一级提示；
-4. 必要时降低抽象度或提供反例；
-5. 只有读者明确要求时才完整讲解；
-6. 用一个检验问题确认理解是否真正建立。
+1. Point to a specific passage.
+2. Ask for a testable explanation, prediction, or comparison.
+3. Give a first-level hint based on the gap in the response.
+4. Lower the abstraction level or introduce a counterexample when needed.
+5. Give a complete explanation only when the reader asks for it.
+6. End with a verification question that checks whether understanding was rebuilt.
 
-用户可以随时切换“直接解释”，但系统不应悄悄把引导模式退化成答案生成器。
+Readers may switch to direct explanation at any time, but the application should never silently turn coaching mode into generic answer generation.
 
-### 3. 如何控制书籍上下文与剧透
+### 3. Control context and spoilers
 
-AI 只默认看到当前位置之前的已读内容、当前选文和读者主动加入的笔记。跨章检索必须带边界：
+By default, the AI sees only the current selection, reader-approved notes, and material up to the current reading position. Retrieval uses explicit boundaries:
 
-- `current-chapter`：只看当前章；
-- `read-so-far`：只看已读范围；
-- `whole-book`：用户明确允许后搜索全书；
-- `external-no-spoiler`：外部搜索时排除剧情梗概与后续章节。
+- `current-chapter`: search only the current chapter;
+- `read-so-far`: search only completed material;
+- `whole-book`: search the entire book after explicit permission;
+- `external-no-spoiler`: exclude plot summaries and later events from web research.
 
-### 4. 笔记怎样成为长期记忆
+### 4. Turn notes into durable memory
 
-AI 不直接覆盖读者笔记。它可以提出“笔记建议”，由读者确认后写入。被确认的笔记保留来源、原文锚点和修改历史，使下一次讨论能够分辨：这是读者原话、AI 草稿，还是双方整理后的结论。
+The AI never silently overwrites a reader's notes. It may propose a note that the reader can approve, revise, or reject. Confirmed notes retain provenance, source anchors, and edit history, so future conversations can distinguish reader writing, AI drafts, and jointly edited conclusions.
 
-### 5. 怎样跨书形成知识网络
+### 5. Build meaningful connections across books
 
-跨书连接不是简单的向量相似度。连接至少要说明关系类型：支持、反驳、类比、前置概念、同一人物/事件或术语异义。每条连接都要能回到两本书的具体段落。
+Cross-book links should describe a relationship rather than only report vector similarity. Supported relations include agreement, contradiction, analogy, prerequisite, shared entity, and conflicting terminology. Every link must return to a specific passage in each book.
 
-## 建议的 AI 阅读状态机
+## Proposed reading-agent state machine
 
 ```text
-选择原文
-  → 判断用户意图（理解 / 考证 / 批判 / 翻译 / 记录）
-  → 先检索书内证据
-  → 需要时请求联网搜索许可
-  → 生成一个锚定原文的问题或解释
-  → 记录用户回答与薄弱点
-  → 提议写入便签或复习卡
-  → 用户确认后落盘
+Select a passage
+  -> classify intent: understand / verify / critique / translate / capture
+  -> retrieve book evidence first
+  -> request permission for web research when needed
+  -> produce one anchored question or explanation
+  -> record the reader's response and learning gaps
+  -> propose a sticky note or review card
+  -> write locally only after reader confirmation
 ```
 
-## 首要里程碑
+## Priority milestones
 
-1. 将现有 AI 对话升级为“苏格拉底 / 直接解释 / 批判阅读”三种明确模式。
-2. 给所有 AI 输出增加书内引文锚点。
-3. 增加只读的本地笔记检索，允许 AI 找到读者过去的相关想法。
-4. 增加受控联网搜索，并把外部证据与书内证据分开。
-5. 增加跨书连接与复习池。
-
+1. Add explicit Socratic, direct-explanation, and critical-reading modes.
+2. Attach source anchors to every AI response.
+3. Add read-only retrieval over the reader's local notes.
+4. Add controlled web search with separate book and web evidence.
+5. Add cross-book links and a review queue.
