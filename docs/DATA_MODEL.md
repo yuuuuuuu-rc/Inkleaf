@@ -5,7 +5,7 @@
 - A library remains portable and does not depend on a cloud database.
 - Each book has an independent notebook so one damaged file cannot affect every book.
 - Human-readable JSON remains the source of truth. A future SQLite index must be disposable and rebuildable.
-- AI writes require an explicit, reviewable operation with undo history.
+- Reader notes remain reader-controlled. AI study notes are separate, automatically revised, and retain revision history.
 
 ## Canonical library layout
 
@@ -20,6 +20,8 @@ library/
 ```
 
 ## Proposed notebook schema
+
+The notebook proposal below concerns reader-visible data. Since 0.5.0, internal AI data lives separately in `notes/<book-id>/.ai/text.json` and `memory.json`. The latter stores a fingerprint, status, section summaries, cumulative overview/reading plan, progress, errors, and the last 30 revisions. Writes use an atomic rename; per-book conversation queues prevent lost updates. Preparation saves a checkpoint after each section. Status APIs expose progress only, never note contents.
 
 ```json
 {
@@ -48,7 +50,7 @@ Each note should contain:
 
 ## AI write protocol
 
-AI is read-only by default:
+For reader-visible notes, the proposed workflow is:
 
 1. The AI returns a structured note proposal.
 2. The interface previews the title, body, location, and sources.

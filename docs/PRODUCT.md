@@ -2,6 +2,8 @@
 
 ## Product goal
 
+Version 0.5.0 implements opt-in whole-book pre-reading with private, evolving AI study notes. The reader starts preparation for an individual book, then asks questions after it completes. The companion can revise its own notes automatically and optionally search the web. Reader sticky notes remain independently controlled. More advanced coaching modes and strict spoiler-scoped retrieval below remain design proposals.
+
 Inkleaf is not a chatbot placed beside an ebook. It is a reading companion constrained by the source text, the reader's progress, and the reader's own notes. Its purpose is to help readers form judgments rather than replace reading with summaries.
 
 ## Five core problems
@@ -32,7 +34,7 @@ Readers may switch to direct explanation at any time, but the application should
 
 ### 3. Control context and spoilers
 
-By default, the AI sees only the current selection, reader-approved notes, and material up to the current reading position. Retrieval uses explicit boundaries:
+The current whole-book mode sees extracted text and internal summaries, with a prompt-based preference to avoid spoilers. Future retrieval should support explicit boundaries:
 
 - `current-chapter`: search only the current chapter;
 - `read-so-far`: search only completed material;

@@ -12,6 +12,8 @@ Inkleaf keeps books, highlights, sticky notes, translations, reading positions a
 - Highlight text and create interactive, book-specific sticky notes.
 - Translate selections through an OpenAI-compatible API.
 - Discuss the current passage and your notes with an AI reading companion.
+- Pre-read an entire EPUB into private, evolving AI study notes and a reading plan.
+- Let the companion verify public facts with Gemini Google Search and return sources.
 - Preserve reflowable-document locations with EPUB CFI-style anchors.
 - Keep API credentials outside the repository and outside the book library.
 - Run with Node.js built-ins only: no `npm install`, database or cloud account required.
@@ -73,17 +75,32 @@ Open **Settings** in Inkleaf and enter:
 
 For Gemini's OpenAI-compatible API, `https://generativelanguage.googleapis.com/v1beta` is accepted and Inkleaf adds the compatibility route automatically.
 
-Only passages and context submitted to an AI action are sent to the configured provider. Inkleaf does not upload the complete library in the background.
+Translation sends the selected text. Whole-book pre-reading sends all extractable text of the book you choose to your configured provider, in sections. Inkleaf does not upload other books in the background.
+
+### 3. Prepare an AI reading companion
+
+Open a book, choose **AI Reading**, then **Pre-read whole book**. The server reads every text section in order, creates section summaries, and maintains a cumulative book map and clarification plan. Wait for **Whole-book preparation complete** before sending questions. Large books take longer and consume more API tokens.
+
+You can keep reading while preparation runs, or select **Pause** (effective after the current section). After an interruption, **Resume pre-reading** continues from the last saved section. Closing the browser does not stop the local server's job; stopping the server does.
+
+In conversation, the companion consults relevant original passages and revises its own study notes after answering. These notes never appear as reader sticky notes or in note exports. The last 30 internal revisions are retained locally. If updating the notes fails, the answer remains available with a warning.
+
+**Allow web search when needed** is enabled initially and can be turned off. It currently requires a direct Gemini connection and a model that supports Google Search grounding. The AI chooses when an external fact needs checking and sends a short query, then returns source URLs. Search can incur additional provider charges; unsupported models or temporary search failures are reported instead of treated as verified evidence.
+
+Preparation covers extractable EPUB text, including appendix sections. Image-only text requires OCR, which is not included. The current limit is 15 million text characters per book.
 
 ## Local data and privacy
 
 | Data | Location |
 |---|---|
 | Books, notes, translations and conversations | The library folder you choose |
+| Internal AI notes, revision history and extracted text | `notes/<book-id>/.ai/` inside that library |
 | API configuration | `%LOCALAPPDATA%\Inkleaf\settings.json` |
 | Application source | This repository |
 
 Do not commit API keys, copyrighted books or personal notes. The included `.gitignore` excludes common local data and ebook formats. See [SECURITY.md](SECURITY.md) for the security model.
+
+Internal AI notes are hidden from the reading interface and normal notebook API, not encrypted or inaccessible to the computer owner. They are ordinary study summaries, not a model's private chain of thought.
 
 ## Updating
 
@@ -98,6 +115,10 @@ npm start
 Updating the source does not move or rewrite the selected library.
 
 ## Troubleshooting
+
+### Web search reports quota exceeded
+
+Gemini text generation and Google Search grounding may have different quotas. An API key that translates successfully can still have no remaining search quota. Check your Google AI Studio project's quota and billing, then try again; Inkleaf does not change your plan or silently switch models. You can turn search off and continue book-grounded conversations. Failed searches are explicitly marked, and only URLs returned by the search provider are accepted as external source links.
 
 ### The window does not open
 
@@ -138,7 +159,7 @@ The smoke test uses a temporary configuration directory and never opens or modif
 - [Controlled web-search tool design](docs/WEB_SEARCH.md)
 - [Socratic Reader reference analysis](docs/REFERENCE.md)
 
-Web search is intentionally not enabled by default. The planned design searches the book and local notes first, requests permission before external research, separates book evidence from web evidence and enforces spoiler boundaries.
+The current companion consults the book before optional external research. Its instructions distinguish book evidence from web evidence and avoid spoilers unless requested; this is a prompt-based preference, not a guaranteed spoiler filter.
 
 ## License
 

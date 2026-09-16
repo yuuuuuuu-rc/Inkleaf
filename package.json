@@ -1,13 +1,13 @@
 {
   "name": "inkleaf",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "private": true,
   "description": "A local-first EPUB reader for AI-assisted reading, translation, and interactive notes",
   "scripts": {
     "start": "node server.cjs --open",
     "start:server": "node server.cjs",
-    "check": "node --check server.cjs && node --check dist/web-bridge.js && node --check tools/smoke-test.cjs",
-    "test": "npm run check && node tools/smoke-test.cjs"
+    "check": "node --check server.cjs && node --check companion.cjs && node --check dist/web-bridge.js && node --check dist/companion-ui.js && node --check dist/assets/index-Cni3k_A9.js && node --check tools/smoke-test.cjs",
+    "test": "npm run check && node tools/smoke-test.cjs && node --test tools/companion.test.cjs"
   },
   "engines": {
     "node": ">=18"

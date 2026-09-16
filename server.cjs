@@ -4,6 +4,7 @@ const fsp = require('node:fs/promises')
 const path = require('node:path')
 const crypto = require('node:crypto')
 const { execFile, spawn } = require('node:child_process')
+const { createCompanion, searchGemini } = require('./companion.cjs')
 
 const HOST = '127.0.0.1'
 const PORT = Number(process.env.INKLEAF_PORT || 43128)
@@ -23,6 +24,15 @@ const NOTES_DIRECTORY = 'notes'
 const LEGACY_NOTES_DIRECTORY = '\u7b14\u8bb0'
 const POWERSHELL = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
 const stateWriteQueues = new Map()
+const companion = createCompanion({
+  requestModel, settings: readSettingsRaw, searchWeb: searchGemini,
+  directoryFor: async (bookId) => {
+    validateBookId(bookId)
+    const books = await readLibraryIndex()
+    if (!books.some(book => book.id === bookId)) throw new Error('This book is not in the library.')
+    return pathInside(await libraryRoot(), NOTES_DIRECTORY, bookId, '.ai')
+  },
+})
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -368,7 +378,7 @@ function safeMutation(request) {
 
 async function handleApi(request, response, url) {
   if (request.method !== 'GET' && !safeMutation(request)) return sendJson(response, 403, null, 'Request origin rejected.')
-  if (request.method === 'GET' && url.pathname === '/inkstone-api/health') return sendJson(response, 200, { runtime: 'local-web', version: '0.4.2' })
+  if (request.method === 'GET' && url.pathname === '/inkstone-api/health') return sendJson(response, 200, { runtime: 'local-web', version: '0.5.0' })
   if (request.method === 'GET' && url.pathname === '/inkstone-api/library') return sendJson(response, 200, await readLibraryIndex())
   if (request.method === 'GET' && url.pathname === '/inkstone-api/library/path') return sendJson(response, 200, await libraryRoot(false))
   if (request.method === 'POST' && url.pathname === '/inkstone-api/library/choose') {
@@ -410,6 +420,7 @@ async function handleApi(request, response, url) {
     if (request.method === 'GET' && action === 'state') return sendJson(response, 200, await readBookState(bookId))
     if (request.method === 'POST' && action === 'state') return sendJson(response, 200, await queueBookStateSave(bookId, await requestJson(request, 20 * 1024 * 1024)))
     if (request.method === 'DELETE' && !action) {
+      if (await companion.isBusy(bookId)) throw new Error('Wait for AI pre-reading or conversation to finish before removing this book.')
       const books = await readLibraryIndex()
       const entry = books.find((book) => book.id === bookId)
       if (!entry) return sendJson(response, 200, false)
@@ -430,7 +441,17 @@ async function handleApi(request, response, url) {
     const settings = await requestJson(request)
     return sendJson(response, 200, { ok: true, result: await translateText('A quiet page can hold an entire world.', settings) })
   }
-  if (request.method === 'POST' && url.pathname === '/inkstone-api/ai') return sendJson(response, 200, await askReaderAI(await requestJson(request, 2 * 1024 * 1024)))
+  const companionMatch = url.pathname.match(/^\/inkstone-api\/companion\/([a-f0-9]{20})$/)
+  if (companionMatch && request.method === 'GET') return sendJson(response, 200, await companion.status(companionMatch[1]))
+  if (companionMatch && request.method === 'POST') {
+    const body = await requestJson(request, 64 * 1024 * 1024)
+    if (body.action === 'pause') return sendJson(response, 200, await companion.pause(companionMatch[1]))
+    return sendJson(response, 200, await companion.start(companionMatch[1], body.chapters))
+  }
+  if (request.method === 'POST' && url.pathname === '/inkstone-api/ai') {
+    const body = await requestJson(request, 2 * 1024 * 1024)
+    return sendJson(response, 200, body.bookId ? await companion.chat(body) : await askReaderAI(body))
+  }
   if (request.method === 'POST' && url.pathname === '/inkstone-api/notes/export') {
     const body = await requestJson(request, 20 * 1024 * 1024)
     const filename = await chooseSaveFile(body.filename)
@@ -450,7 +471,7 @@ async function serveStatic(request, response, url) {
   try { if (!(await fsp.stat(filename)).isFile()) throw new Error('not file') }
   catch { filename = path.join(STATIC_ROOT, 'index.html') }
   const body = await fsp.readFile(filename)
-  const cache = filename.endsWith('index.html') || filename.endsWith('web-bridge.js') ? 'no-cache' : 'public, max-age=31536000, immutable'
+  const cache = /\.(html|js)$/.test(filename) ? 'no-cache' : 'public, max-age=31536000, immutable'
   response.writeHead(200, {
     'Content-Type': mimeTypes[path.extname(filename).toLowerCase()] || 'application/octet-stream',
     'Content-Length': body.length,

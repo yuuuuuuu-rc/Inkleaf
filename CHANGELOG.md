@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 - 2026-09-16
+
+- Added full EPUB text pre-reading with checkpoints, pause/resume and a private cumulative book map and reading plan.
+- Added evidence retrieval and conversation-driven updates to internal AI notes, with 30 local revisions.
+- Added optional Gemini Google Search grounding and external source URLs, with explicit unavailable-search reporting.
+- Kept internal notes separate from reader notebooks, note exports and public progress responses.
+- Added a pre-reading panel and corrected stale JavaScript caching on updates.
+
 ## 0.4.2 — 2026-09-16
 
 - Added automatic retries for temporary AI provider failures, including HTTP 503 responses.

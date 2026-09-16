@@ -1,5 +1,15 @@
 # Controlled Web Search Design
 
+## Implemented in 0.5.0
+
+The AI Reading panel includes an enabled-by-default search toggle. A model first chooses relevant book sections and optionally a short public-fact query. The local server uses Gemini's native `generateContent` endpoint with `google_search`, then supplies the grounded text and source metadata to the reading companion. Returned source URLs are included in the answer. Empty grounding metadata is reported as unavailable verification.
+
+The first adapter requires a direct `generativelanguage.googleapis.com` connection and a compatible model. Other providers retain whole-book reading and conversations, but external verification reports unavailable. Search does not silently change the configured model. Internal notes are never intentionally sent as search queries. Book and web evidence remain distinct in the model instructions.
+
+Reference: [Google Search grounding](https://ai.google.dev/gemini-api/docs/generate-content/google-search).
+
+The sections below describe future extensions, not additional currently shipped controls.
+
 ## Decision
 
 Inkleaf should offer web search as an evidence tool, not as an unrestricted default capability. It is most useful for:
@@ -15,7 +25,7 @@ Fiction should never trigger plot-related searches automatically because search 
 ## Modes
 
 - **Off:** search only the book and local notes.
-- **Ask before searching (default):** explain why outside evidence is needed and preview the proposed query.
+- **Ask before searching (planned):** explain why outside evidence is needed and preview the proposed query.
 - **Automatic with spoiler protection:** search background facts and time-sensitive claims, but still request confirmation for plot, character fate, and later chapters.
 
 ## Tool boundary
