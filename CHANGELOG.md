@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.2 — 2026-09-16
+
+- Added automatic retries for temporary AI provider failures, including HTTP 503 responses.
+- Normalized `Chinese` translation targets to `Simplified Chinese`.
+- Strengthened the translation prompt for faithful, terminology-consistent output without invented context.
+- Prevented an older translation from appearing when a newly selected passage fails to translate.
+
 ## 0.4.1 — 2026-09-12
 
 - Standardized the public project, application messages, and interface in English.

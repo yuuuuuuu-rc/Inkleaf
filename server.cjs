@@ -66,39 +66,87 @@ function endpointFor(baseUrl) {
   return clean.endsWith('/chat/completions') ? clean : `${clean}/chat/completions`
 }
 
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
+}
+
+function retryDelay(response, attempt) {
+  const retryAfter = Number(response.headers.get('retry-after'))
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(retryAfter * 1000, 5000)
+  return [0, 800, 2000][attempt] || 2000
+}
+
+function targetLanguageName(value) {
+  const requested = String(value || 'English').trim()
+  if (/^(chinese|simplified chinese|zh|zh-cn|\u4e2d\u6587|\u7b80\u4f53\u4e2d\u6587)$/i.test(requested)) return 'Simplified Chinese'
+  return requested || 'English'
+}
+
 async function requestModel({ messages, temperature, override = {}, timeoutMs = 60000 }) {
   const saved = await readSettingsRaw()
   const config = { ...saved, ...override }
   const apiKey = override.apiKey || saved.apiKey
   if (!apiKey) throw new Error('Add an API key in Settings first.')
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    const response = await fetch(endpointFor(config.baseUrl), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: config.model || 'gpt-4.1-mini', temperature, messages }),
-      signal: controller.signal,
-    })
-    const data = await response.json().catch(() => ({}))
-    if (!response.ok) throw new Error(data?.error?.message || `API request failed (${response.status}).`)
-    const content = data?.choices?.[0]?.message?.content
-    if (!content) throw new Error('The API returned no content. Check the model configuration.')
-    return String(content).trim()
-  } catch (error) {
-    if (error.name === 'AbortError') throw new Error('The request timed out. Check the network and API base URL.')
-    throw error
-  } finally { clearTimeout(timeout) }
+  const retryableStatuses = new Set([429, 500, 502, 503, 504])
+  const maximumAttempts = 3
+  let lastError
+
+  for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      const response = await fetch(endpointFor(config.baseUrl), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({ model: config.model || 'gpt-4.1-mini', temperature, messages }),
+        signal: controller.signal,
+      })
+      const data = await response.json().catch(() => ({}))
+      if (response.ok) {
+        const content = data?.choices?.[0]?.message?.content
+        if (!content) throw new Error('The API returned no content. Check the model configuration.')
+        return String(content).trim()
+      }
+
+      const providerMessage = data?.error?.message || `API request failed (${response.status}).`
+      lastError = new Error(providerMessage)
+      if (!retryableStatuses.has(response.status) || attempt === maximumAttempts - 1) {
+        if (response.status === 503) {
+          throw new Error(`The AI provider is temporarily unavailable (503) after ${maximumAttempts} attempts. Please try again shortly.`)
+        }
+        throw lastError
+      }
+      await delay(retryDelay(response, attempt))
+    } catch (error) {
+      if (error.name === 'AbortError') throw new Error('The request timed out. Check the network and API base URL.')
+      if (attempt === maximumAttempts - 1 || !/fetch failed|network|socket|ECONNRESET|ETIMEDOUT/i.test(error.message || '')) throw error
+      lastError = error
+      await delay([300, 800, 2000][attempt])
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+  throw lastError || new Error('The AI request failed.')
 }
 
 async function translateText(text, override = {}) {
   const config = { ...(await readSettingsRaw()), ...override }
+  const targetLanguage = targetLanguageName(config.targetLanguage)
   return requestModel({
     override,
-    temperature: 0.2,
+    temperature: 0.1,
     timeoutMs: 45000,
     messages: [
-      { role: 'system', content: `You are a professional literary translator. Translate the user's text into ${config.targetLanguage || 'English'}. Preserve paragraphs, tone, proper nouns, and formatting. Return only the translation, without commentary.` },
+      { role: 'system', content: `You are a meticulous professional translator of literature and serious nonfiction. Translate the user's text into ${targetLanguage}.
+
+Requirements:
+1. Preserve the exact meaning, logical relationships, tone, register, tense, person, modality, ambiguity, and degree of certainty.
+2. Do not omit, summarize, embellish, explain, censor, or add information that is absent from the source.
+3. Translate terminology and proper nouns accurately and consistently. When context is insufficient, choose the least speculative rendering.
+4. Produce natural, polished ${targetLanguage} while remaining faithful to the source sentence structure where it carries meaning.
+5. Preserve paragraph breaks, headings, lists, quotations, emphasis, and other meaningful formatting.
+6. If the source is an incomplete sentence or fragment, translate it as a fragment. Do not invent missing context or silently repair it.
+7. Return only the translation. Do not add labels, notes, alternatives, commentary, or quotation marks.` },
       { role: 'user', content: String(text || '') },
     ],
   })
@@ -320,7 +368,7 @@ function safeMutation(request) {
 
 async function handleApi(request, response, url) {
   if (request.method !== 'GET' && !safeMutation(request)) return sendJson(response, 403, null, 'Request origin rejected.')
-  if (request.method === 'GET' && url.pathname === '/inkstone-api/health') return sendJson(response, 200, { runtime: 'local-web', version: '0.4.1' })
+  if (request.method === 'GET' && url.pathname === '/inkstone-api/health') return sendJson(response, 200, { runtime: 'local-web', version: '0.4.2' })
   if (request.method === 'GET' && url.pathname === '/inkstone-api/library') return sendJson(response, 200, await readLibraryIndex())
   if (request.method === 'GET' && url.pathname === '/inkstone-api/library/path') return sendJson(response, 200, await libraryRoot(false))
   if (request.method === 'POST' && url.pathname === '/inkstone-api/library/choose') {

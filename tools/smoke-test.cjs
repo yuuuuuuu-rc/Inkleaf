@@ -1,11 +1,13 @@
 const { spawn } = require('node:child_process')
 const { access, mkdir, mkdtemp, rm, writeFile } = require('node:fs/promises')
+const http = require('node:http')
 const os = require('node:os')
 const path = require('node:path')
 
 const ROOT = path.resolve(__dirname, '..')
 const PORT = 43281
 const URL = `http://127.0.0.1:${PORT}`
+const MOCK_AI_PORT = 43282
 
 async function pathExists(filename) {
   try { await access(filename); return true } catch { return false }
@@ -36,7 +38,31 @@ async function main() {
     version: 2,
     books: [{ id: '0123456789abcdefabcd', title: 'Sample', bookFile: '\u4e66\u7c4d/sample.epub' }],
   }))
-  await writeFile(path.join(configDir, 'settings.json'), JSON.stringify({ libraryPath: libraryDir }))
+  await writeFile(path.join(configDir, 'settings.json'), JSON.stringify({
+    libraryPath: libraryDir,
+    baseUrl: `http://127.0.0.1:${MOCK_AI_PORT}/v1`,
+    model: 'test-model',
+    apiKey: 'test-key',
+    targetLanguage: '\u7b80\u4f53\u4e2d\u6587',
+  }))
+  let aiAttempts = 0
+  let translationPrompt = ''
+  const mockAi = http.createServer(async (request, response) => {
+    const chunks = []
+    for await (const chunk of request) chunks.push(chunk)
+    const body = JSON.parse(Buffer.concat(chunks).toString('utf8'))
+    translationPrompt = body.messages?.[0]?.content || ''
+    aiAttempts += 1
+    response.setHeader('Content-Type', 'application/json')
+    if (aiAttempts < 3) {
+      response.statusCode = 503
+      response.setHeader('Retry-After', '0.01')
+      response.end(JSON.stringify({ error: { message: 'Temporarily unavailable' } }))
+      return
+    }
+    response.end(JSON.stringify({ choices: [{ message: { content: '\u4e25\u8c28\u7684\u8bd1\u6587' } }] }))
+  })
+  await new Promise((resolve, reject) => mockAi.listen(MOCK_AI_PORT, '127.0.0.1', resolve).once('error', reject))
   const child = spawn(process.execPath, [path.join(ROOT, 'server.cjs')], {
     cwd: ROOT,
     env: { ...process.env, INKLEAF_PORT: String(PORT), INKLEAF_CONFIG_DIR: configDir },
@@ -62,6 +88,16 @@ async function main() {
     if (await pathExists(path.join(libraryDir, '\u4e66\u7c4d'))) throw new Error('Legacy books directory was not removed')
     if (await pathExists(path.join(libraryDir, '\u7b14\u8bb0'))) throw new Error('Legacy notes directory was not removed')
     if (await pathExists(path.join(libraryDir, '\u58a8\u9875\u4e66\u5e93.json'))) throw new Error('Legacy manifest was not removed')
+    const translated = await fetch(`${URL}/inkstone-api/translate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Inkstone-Web': '1' },
+      body: JSON.stringify({ text: 'An incomplete fragment' }),
+    }).then((response) => response.json())
+    if (!translated.ok || translated.value !== '\u4e25\u8c28\u7684\u8bd1\u6587') throw new Error('Translation request failed')
+    if (aiAttempts !== 3) throw new Error('Temporary provider errors were not retried')
+    if (!translationPrompt.includes('Simplified Chinese') || !translationPrompt.includes('incomplete sentence or fragment')) {
+      throw new Error('Strict translation prompt was not applied')
+    }
     console.log('Inkleaf smoke test passed')
   } finally {
     if (child.exitCode === null) {
@@ -69,6 +105,7 @@ async function main() {
       child.kill()
       await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 3000))])
     }
+    await new Promise((resolve) => mockAi.close(resolve))
     await rm(configDir, { recursive: true, force: true })
   }
   if (stderr.trim()) throw new Error(stderr.trim())

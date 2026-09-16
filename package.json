@@ -1,6 +1,6 @@
 {
   "name": "inkleaf",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "description": "A local-first EPUB reader for AI-assisted reading, translation, and interactive notes",
   "scripts": {
