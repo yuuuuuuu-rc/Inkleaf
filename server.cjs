@@ -35,6 +35,7 @@ const companion = createCompanion({
 })
 
 const mimeTypes = {
+  '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.pdf': 'application/pdf',
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
   '.woff': 'font/woff', '.woff2': 'font/woff2',
@@ -262,8 +263,10 @@ async function stateFileFor(bookId) {
 }
 
 async function importBookData(name, data) {
-  if (!/\.epub$/i.test(name || '')) throw new Error('Choose an EPUB file.')
-  if (!data.length) throw new Error('The EPUB file is empty.')
+  if (!/\.(epub|pdf)$/i.test(name || '')) throw new Error('Choose an EPUB or PDF file.')
+  if (!data.length) throw new Error('The book file is empty.')
+  const format = path.extname(name).slice(1).toLowerCase()
+  if (format === 'pdf' && !data.subarray(0, 1024).includes(Buffer.from('%PDF-'))) throw new Error('This file does not contain a valid PDF header.')
   const id = crypto.createHash('sha256').update(data).digest('hex').slice(0, 20)
   const books = await readLibraryIndex()
   const existing = books.find((book) => book.id === id)
@@ -274,12 +277,12 @@ async function importBookData(name, data) {
   }
   const root = await libraryRoot()
   await ensureLibrary(root)
-  const cleanName = name.replace(/\.epub$/i, '').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/[. ]+$/g, '').slice(0, 90) || 'Untitled book'
-  const bookFile = `${BOOKS_DIRECTORY}/${cleanName}--${id.slice(0, 6)}.epub`
+  const cleanName = name.replace(/\.(epub|pdf)$/i, '').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/[. ]+$/g, '').slice(0, 90) || 'Untitled book'
+  const bookFile = `${BOOKS_DIRECTORY}/${cleanName}--${id.slice(0, 6)}.${format}`
   await fsp.writeFile(pathInside(root, bookFile), data)
   await fsp.writeFile(await stateFileFor(id), JSON.stringify({ notes: [], translations: [], aiMessages: [], location: '' }, null, 2), 'utf8')
   const now = Date.now()
-  const entry = { id, name, title: name.replace(/\.epub$/i, ''), creator: '', size: data.length, importedAt: now, lastOpenedAt: now, noteCount: 0, progress: 0, bookFile }
+  const entry = { id, name, format, title: name.replace(/\.(epub|pdf)$/i, ''), creator: '', size: data.length, importedAt: now, lastOpenedAt: now, noteCount: 0, progress: 0, bookFile }
   books.unshift(entry)
   await writeLibraryIndex(books)
   return { ...entry, dataBase64: data.toString('base64') }
@@ -345,7 +348,7 @@ async function chooseLibraryFolder() {
 }
 
 function chooseEpubFile() {
-  return runDialog("$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Title='Import EPUB into Inkleaf'; $d.Filter='EPUB books (*.epub)|*.epub'; $d.Multiselect=$false; if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){[Console]::Write($d.FileName)}")
+  return runDialog("$ErrorActionPreference='Stop'; [Console]::OutputEncoding=[Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Title='Import a book into Inkleaf'; $d.Filter='Books (*.epub;*.pdf)|*.epub;*.pdf|EPUB (*.epub)|*.epub|PDF (*.pdf)|*.pdf'; $d.Multiselect=$false; if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){[Console]::Write($d.FileName)}")
 }
 
 function chooseSaveFile(defaultName) {
@@ -378,7 +381,7 @@ function safeMutation(request) {
 
 async function handleApi(request, response, url) {
   if (request.method !== 'GET' && !safeMutation(request)) return sendJson(response, 403, null, 'Request origin rejected.')
-  if (request.method === 'GET' && url.pathname === '/inkstone-api/health') return sendJson(response, 200, { runtime: 'local-web', version: '0.5.0' })
+  if (request.method === 'GET' && url.pathname === '/inkstone-api/health') return sendJson(response, 200, { runtime: 'local-web', version: '0.6.0' })
   if (request.method === 'GET' && url.pathname === '/inkstone-api/library') return sendJson(response, 200, await readLibraryIndex())
   if (request.method === 'GET' && url.pathname === '/inkstone-api/library/path') return sendJson(response, 200, await libraryRoot(false))
   if (request.method === 'POST' && url.pathname === '/inkstone-api/library/choose') {
@@ -477,7 +480,7 @@ async function serveStatic(request, response, url) {
     'Content-Length': body.length,
     'Cache-Control': cache,
     'X-Content-Type-Options': 'nosniff',
-    'Content-Security-Policy': "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-src blob:; worker-src 'self' blob:; font-src 'self' data:",
+    'Content-Security-Policy': "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; frame-src blob:; worker-src 'self' blob:; font-src 'self' data: blob:",
   })
   if (request.method === 'HEAD') response.end()
   else response.end(body)

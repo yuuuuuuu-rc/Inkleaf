@@ -9,6 +9,9 @@ Inkleaf's checked-in browser bundle includes the following open-source libraries
 | Lucide React | 0.468.0 | ISC | <https://github.com/lucide-icons/lucide> |
 | JSZip | bundled by epub.js | MIT or GPL-3.0; Inkleaf uses it under MIT | <https://github.com/Stuk/jszip> |
 | pako | bundled by JSZip | MIT | <https://github.com/nodeca/pako> |
+| PDF.js | 6.3.289 | Apache-2.0 | <https://github.com/mozilla/pdf.js> |
+
+PDF.js is bundled locally under `dist/vendor/pdfjs/`, including its worker, fonts, character maps and WebAssembly resources. Its license is included as `dist/vendor/pdfjs/LICENSE`; additional component license files shipped with these resources are retained.
 
 ## epub.js BSD-2-Clause notice
 

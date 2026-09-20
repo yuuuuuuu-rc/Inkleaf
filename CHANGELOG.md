@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 - 2026-09-19
+
+- Added locally bundled PDF.js rendering, PDF import, page navigation, zoom and text-layer selection alongside the existing EPUB reader.
+- Reused sticky notes, persistent source highlights, manual translation and whole-book AI preparation for PDFs.
+- Added a persistent top-bar auto-translation switch, initially off, so selecting passages for notes does not automatically call AI.
+- Preserved existing EPUB books and notebooks; image-only PDFs have an explicit no-OCR notice.
+
 ## 0.5.0 - 2026-09-16
 
 - Added full EPUB text pre-reading with checkpoints, pause/resume and a private cumulative book map and reading plan.

@@ -1,6 +1,6 @@
 # Inkleaf
 
-**A local-first EPUB reader for AI-assisted reading, translation and interactive notes.**
+**A local-first EPUB and PDF reader for AI-assisted reading, translation and interactive notes.**
 
 [Product design](docs/PRODUCT.md) · [Data model](docs/DATA_MODEL.md) · [Web-search design](docs/WEB_SEARCH.md)
 
@@ -8,11 +8,11 @@ Inkleaf keeps books, highlights, sticky notes, translations, reading positions a
 
 ## Highlights
 
-- Import and manage EPUB books in a portable local library.
+- Import and manage EPUB and PDF books in a portable local library.
 - Highlight text and create interactive, book-specific sticky notes.
-- Translate selections through an OpenAI-compatible API.
+- Translate selections manually, or enable the persistent **Auto-translate** switch (off by default).
 - Discuss the current passage and your notes with an AI reading companion.
-- Pre-read an entire EPUB into private, evolving AI study notes and a reading plan.
+- Pre-read extractable EPUB or PDF text into private, evolving AI study notes and a reading plan.
 - Let the companion verify public facts with Gemini Google Search and return sources.
 - Preserve reflowable-document locations with EPUB CFI-style anchors.
 - Keep API credentials outside the repository and outside the book library.
@@ -34,7 +34,7 @@ Windows is currently the supported desktop platform because library, import and 
 1. Download or clone this repository.
 2. Double-click `start-windows.cmd`.
 3. In Inkleaf, choose a library folder.
-4. Import an EPUB and start reading.
+4. Import an EPUB or PDF and start reading.
 
 ### Option 2: terminal
 
@@ -50,13 +50,13 @@ Inkleaf opens at <http://127.0.0.1:43128>.
 
 ### 1. Choose a library
 
-Use **Choose library folder** on the first screen. Inkleaf creates this structure without changing EPUB files outside it:
+Use **Choose library folder** on the first screen. Inkleaf creates this structure without changing original books outside it:
 
 ```text
 Your library/
 ├─ library.json
 ├─ books/
-│  └─ *.epub
+│  └─ *.epub / *.pdf
 └─ notes/
    └─ <book-id>/
       └─ notebook.json
@@ -87,7 +87,15 @@ In conversation, the companion consults relevant original passages and revises i
 
 **Allow web search when needed** is enabled initially and can be turned off. It currently requires a direct Gemini connection and a model that supports Google Search grounding. The AI chooses when an external fact needs checking and sends a short query, then returns source URLs. Search can incur additional provider charges; unsupported models or temporary search failures are reported instead of treated as verified evidence.
 
-Preparation covers extractable EPUB text, including appendix sections. Image-only text requires OCR, which is not included. The current limit is 15 million text characters per book.
+Preparation covers extractable EPUB and PDF text, including appendix sections. Image-only text requires OCR, which is not included. The current limit is 15 million text characters per book.
+
+### 4. Read PDFs and take notes without automatic translation
+
+Use **Import EPUB / PDF** or drag a file into the library. PDFs retain their original layout. Use **Previous page**, **Next page**, or the page-number field to navigate; the existing size controls zoom the page. EPUB reflow and scrolling behavior are unchanged. PDFs currently display one scrollable page at a time, regardless of the EPUB reading-mode selector.
+
+For PDFs with a text layer, drag across text to highlight it, create a sticky note, translate it manually, or discuss it with AI. Notes retain a page-and-position anchor and return to the highlighted source after reopening the book. Scanned pages can be viewed, but text selection and text-based AI features require an existing text layer; OCR and password-protected PDFs are not supported.
+
+The top-bar **Auto-translate: Off / On** switch controls translation on selection for both formats. It defaults to **Off**, including on the first upgrade to 0.6.0, and remembers subsequent choices in this browser. With it off, selecting text only opens the selection actions: taking notes does not send a translation request. The explicit **Translate** action still works.
 
 ## Local data and privacy
 

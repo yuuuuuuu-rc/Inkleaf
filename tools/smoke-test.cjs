@@ -1,5 +1,5 @@
 const { spawn } = require('node:child_process')
-const { access, mkdir, mkdtemp, rm, writeFile } = require('node:fs/promises')
+const { access, mkdir, mkdtemp, rm, readFile, writeFile } = require('node:fs/promises')
 const http = require('node:http')
 const os = require('node:os')
 const path = require('node:path')
@@ -88,6 +88,21 @@ async function main() {
     if (await pathExists(path.join(libraryDir, '\u4e66\u7c4d'))) throw new Error('Legacy books directory was not removed')
     if (await pathExists(path.join(libraryDir, '\u7b14\u8bb0'))) throw new Error('Legacy notes directory was not removed')
     if (await pathExists(path.join(libraryDir, '\u58a8\u9875\u4e66\u5e93.json'))) throw new Error('Legacy manifest was not removed')
+    const post = (route, body) => fetch(`${URL}/inkstone-api/${route}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Inkstone-Web': '1' }, body: JSON.stringify(body),
+    }).then(response => response.json())
+    const pdfBytes = Buffer.from('%PDF-1.7\nserver import fixture\n%%EOF')
+    const imported = await post('library/import-bytes', { name: 'Sample.PDF', dataBase64: pdfBytes.toString('base64') })
+    if (!imported.ok || imported.value.format !== 'pdf' || !imported.value.bookFile.endsWith('.pdf')) throw new Error('PDF import failed')
+    const pdfId = imported.value.id
+    const reopened = await fetch(`${URL}/inkstone-api/library/${pdfId}/open`).then(response => response.json())
+    if (!reopened.ok) throw new Error('PDF reopen failed')
+    const savedPdf = await readFile(path.join(libraryDir, imported.value.bookFile))
+    if (!savedPdf.equals(pdfBytes)) throw new Error('PDF bytes changed during import')
+    const invalid = await post('library/import-bytes', { name: 'invalid.pdf', dataBase64: Buffer.from('not a PDF').toString('base64') })
+    if (invalid.ok) throw new Error('Invalid PDF signature accepted')
+    const pdfModule = await fetch(`${URL}/vendor/pdfjs/pdf.mjs`)
+    if (!pdfModule.ok || !pdfModule.headers.get('content-type').includes('javascript')) throw new Error('PDF module is not served as JavaScript')
     const translated = await fetch(`${URL}/inkstone-api/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Inkstone-Web': '1' },
